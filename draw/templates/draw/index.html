@@ -19,18 +19,85 @@
     <canvas id="myCanvas" width="750px" height="750px"></canvas>
 </body>
 <script>
-
+    
+    var colors = ["blue", "green", "red", "orange", "magenta", "cyan", "black", "yellow", "orange", "pink"];
+    
     // setting up the canvas and one paper tool
-    var canvas = document.getElementById('myCanvas');
-    paper.setup(canvas);
-    var tool = new paper.Tool();
+    window.onload = function() {
+      var canvas = document.getElementById('myCanvas');
+      paper.setup(canvas);
+      var tool = new paper.Tool();
 
-    // getting the URL (you may want to use for Exercise 3)
-    var url = window.location.href;
+      // getting the URL (you may want to use for Exercise 3)
+      var url = window.location.href;
 
-    // var socket = new WebSocket(
-    //     'wss://<your url here>/ws/draw');
+      var socket = new WebSocket('wss://p3-websockets-christiansimeon27-christiansimeon653183.codeanyapp.com/ws/draw');
+      var path = new paper.Path();
 
 
+      var randomUser = Math.trunc(Math.random()*colors.length);
+      var currColor = colors[randomUser];
+      var userPaths = {randomUser:path}; 
+      path.strokeColor = currColor;
+
+      tool.onMouseMove = function(event) {
+        var startPoint = new paper.Point(event.point.x, event.point.y);
+        path.add(startPoint);
+        var drawPath = { 
+          "x": event.point.x,
+          "y": event.point.y,
+          "color": currColor,
+          "user": randomUser
+        };
+        socket.send(JSON.stringify(drawPath));
+      }
+      var newPath = new paper.Path();
+      socket.onmessage = function(received) {
+        //console.log(socket);
+        var pathCoordinates = JSON.parse(received.data);
+        var newPoint = new paper.Point(pathCoordinates.x, pathCoordinates.y);
+        //console.log(pathCoordinates);
+        if (pathCoordinates.user in userPaths) {
+          currPath = userPaths[pathCoordinates.user];
+          currPath.strokeColor = pathCoordinates.color;
+          currPath.add(newPoint);
+        } else {
+          userPaths[pathCoordinates.user] = new paper.Path();
+          userPaths[pathCoordinates.user].strokeColor = pathCoordinates.color;
+          userPaths[pathCoordinates.user].add(newPoint);
+        }
+      };
+      socket.onclose = function(e) {
+      console.error('Chat socket closed unexpectedly');
+      };
+      /*$(document).ready(() => {
+        window.addEventListener("devicemotion", (event) => {
+           if ((Math.abs(event.acceleration.x) > 20) || (Math.abs(event.acceleration.y) > 20)) {
+             paper.project.clear();
+           }
+        });
+                            
+
+        window.addEventListener("deviceorientation", (event) => {
+          if (Math.abs(event.gamma) > 60) {
+            var newColor = colors[Math.trunc(Math.random()*colors.length)];
+            path.strokeColor = newColor; 
+          }
+        });
+      })*/
+      $(document).ready(() => {
+    
+    window.addEventListener("devicemotion", (event) => {
+      if ((Math.abs(event.acceleration.x) > 20) || (Math.abs(event.acceleration.y) > 20) || (Math.abs(event.acceleration.z) > 20)) {
+          paper.project.clear();
+//         	paper.project.activeLayer.removeChildren()
+          }
+		});
+    })
+    }
+  
+                     
+  
+      
 </script>
 </html>
